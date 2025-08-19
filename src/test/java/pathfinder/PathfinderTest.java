@@ -616,7 +616,7 @@ public class PathfinderTest {
     }
 
     private int calculatePathLength(int origin, int destination) {
-        Pathfinder pathfinder = new Pathfinder(pathfinderConfig, origin, Set.of(destination));
+        Pathfinder pathfinder = new Pathfinder(origin, Set.of(destination));
         pathfinder.run();
         return pathfinder.getPath().size();
     }

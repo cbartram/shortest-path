@@ -215,7 +215,7 @@ public class ShortestPathPlugin extends Plugin {
                 if (ends.isEmpty()) {
                     setTarget(WorldPointUtil.UNDEFINED);
                 } else {
-                    pathfinder = new Pathfinder(pathfinderConfig, start, ends);
+                    pathfinder = new Pathfinder(start, ends);
                     pathfinderFuture = pathfindingExecutor.submit(pathfinder);
                 }
             }

@@ -168,7 +168,7 @@ public class PathfinderConfig {
     }
 
     public void refresh() {
-        calculationCutoffMillis = config.calculationCutoff() * Constants.GAME_TICK_LENGTH;
+        calculationCutoffMillis = 5 * Constants.GAME_TICK_LENGTH;
         avoidWilderness = ShortestPathPlugin.override("avoidWilderness", config.avoidWilderness());
         useAgilityShortcuts = ShortestPathPlugin.override("useAgilityShortcuts", config.useAgilityShortcuts());
         useGrappleShortcuts = ShortestPathPlugin.override("useGrappleShortcuts", config.useGrappleShortcuts());

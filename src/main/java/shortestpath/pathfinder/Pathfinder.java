@@ -8,6 +8,7 @@ import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
 import lombok.Getter;
+import net.runelite.api.Constants;
 import shortestpath.WorldPointUtil;
 
 public class Pathfinder implements Runnable {
@@ -20,9 +21,10 @@ public class Pathfinder implements Runnable {
     @Getter
     private final Set<Integer> targets;
 
-    private final PathfinderConfig config;
     private final CollisionMap map;
     private final boolean targetInWilderness;
+
+    private final SplitFlagMap mapData;
 
     // Capacities should be enough to store all nodes without requiring the queue to grow
     // They were found by checking the max queue size
@@ -44,10 +46,10 @@ public class Pathfinder implements Runnable {
      */
     private int wildernessLevel;
 
-    public Pathfinder(PathfinderConfig config, int start, Set<Integer> targets) {
+    public Pathfinder(int start, Set<Integer> targets) {
         stats = new PathfinderStats();
-        this.config = config;
-        this.map = config.getMap();
+        this.mapData = SplitFlagMap.fromResources();
+        this.map = new CollisionMap(mapData);
         this.start = start;
         this.targets = targets;
         visited = new VisitedTiles(map);
@@ -87,13 +89,9 @@ public class Pathfinder implements Runnable {
     }
 
     private void addNeighbors(Node node) {
-        List<Node> nodes = map.getNeighbors(node, visited, config);
+        List<Node> nodes = map.getNeighbors(node, visited);
         for (int i = 0; i < nodes.size(); ++i) {
             Node neighbor = nodes.get(i);
-
-            if (config.avoidWilderness(node.packedPosition, neighbor.packedPosition, targetInWilderness)) {
-                continue;
-            }
 
             visited.set(neighbor.packedPosition);
             if (neighbor instanceof TransportNode) {
@@ -113,7 +111,7 @@ public class Pathfinder implements Runnable {
 
         int bestDistance = Integer.MAX_VALUE;
         long bestHeuristic = Integer.MAX_VALUE;
-        long cutoffDurationMillis = config.getCalculationCutoffMillis();
+        long cutoffDurationMillis = 5 * Constants.GAME_TICK_LENGTH;
         long cutoffTimeMillis = System.currentTimeMillis() + cutoffDurationMillis;
 
         while (!cancelled && (!boundary.isEmpty() || !pending.isEmpty())) {
@@ -124,32 +122,6 @@ public class Pathfinder implements Runnable {
                 node = pending.poll();
             } else {
                 node = boundary.removeFirst();
-            }
-
-            if (wildernessLevel > 0) {
-                // We don't need to remove teleports when going from 20 to 21 or higher,
-                // because the teleport is either used at the very start of the
-                // path or when going from 31 or higher to 30, or from 21 or higher to 20.
-
-                boolean update = false;
-                
-                // These are overlapping boundaries, so if the node isn't in level 30, it's in 0-29
-                // likewise, if the node isn't in level 20, it's in 0-19
-                if (wildernessLevel > 30 && !PathfinderConfig.isInLevel30Wilderness(node.packedPosition)) {
-                    wildernessLevel = 30;
-                    update = true;
-                }
-                if (wildernessLevel > 20 && !PathfinderConfig.isInLevel20Wilderness(node.packedPosition)) {
-                    wildernessLevel = 20;
-                    update = true;
-                }
-                if (wildernessLevel > 0 && !PathfinderConfig.isInWilderness(node.packedPosition)) {
-                    wildernessLevel = 0;
-                    update = true;
-                }
-                if (update) {
-                    config.refreshTeleports(node.packedPosition, wildernessLevel);
-                }
             }
 
             if (targets.contains(node.packedPosition)) {
